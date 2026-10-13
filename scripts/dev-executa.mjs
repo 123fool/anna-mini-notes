@@ -21,6 +21,6 @@ createInterface({ input: child.stdout }).on('line', (line) => {
   process.stdout.write(line + '\n');
 });
 child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: bootstrapID, method: 'initialize',
-  params: { protocolVersion: '2.0', capabilities: { sampling: {} }, clientInfo: { name: 'anna-mini-notes-local-launcher', version: '0.1.0' } },
+  params: { protocolVersion: '2.0', capabilities: { sampling: {} }, clientInfo: { name: 'anna-mini-notes-local-launcher', version: '0.1.1' } },
 }) + '\n');
 process.stdin.pipe(child.stdin);

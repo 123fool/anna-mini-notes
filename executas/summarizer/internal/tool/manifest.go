@@ -1,7 +1,7 @@
 package tool
 
 const Name = "tool-mini-notes-summarizer-local"
-const Version = "0.1.0"
+const Version = "0.1.1"
 const Executable = "mini-notes-summarizer"
 
 func Manifest() map[string]any {

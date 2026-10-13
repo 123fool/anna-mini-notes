@@ -12,7 +12,7 @@ let anna: AnnaConnection;
 beforeEach(() => {
   anna = {
     storage: { get: vi.fn().mockResolvedValue({ value: null }), set: vi.fn().mockResolvedValue({ ok: true }) },
-    tools: { invoke: vi.fn().mockResolvedValue({ result: { success: true, data: { summary: 'From the host LLM' } } }) },
+    tools: { invoke: vi.fn().mockResolvedValue({ summary: 'From the host LLM' }) },
   };
   vi.mocked(connectAnna).mockResolvedValue(anna);
 });

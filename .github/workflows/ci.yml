@@ -28,6 +28,7 @@ jobs:
         run: uv tool install anna-app-runtime-local==0.2.0a28
       - run: npx playwright install --with-deps chromium
       - run: npm run test:harness
+      - run: npm run test:qwen
       - uses: actions/upload-artifact@v4
         if: always()
         with:

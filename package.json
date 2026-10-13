@@ -1,6 +1,6 @@
 {
   "name": "anna-mini-notes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,13 +9,16 @@
   "scripts": {
     "build": "tsc --noEmit && vite build",
     "validate": "anna-app validate --strict",
-    "dev": "anna-app dev --no-llm --storage legacy",
+    "dev": "node scripts/dev.mjs",
+    "dev:qwen": "node scripts/dev.mjs --qwen",
+    "dev:harness": "anna-app dev --no-llm --storage legacy",
     "build:watch": "vite build --watch",
     "build:tool": "node scripts/build-tool.mjs",
     "test": "vitest run",
     "test:tool": "node scripts/test-tool.mjs",
     "test:sampling": "node scripts/test-sampling.mjs",
     "test:harness": "playwright test",
+    "test:qwen": "node --test scripts/qwen.test.mjs",
     "pack": "node scripts/pack.mjs",
     "test:archive": "node scripts/test-archive.mjs",
     "check": "npm run build && npm run validate && npm test && npm run test:tool && npm run test:sampling"

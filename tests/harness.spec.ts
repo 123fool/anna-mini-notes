@@ -36,7 +36,7 @@ test('real Anna harness: storage CRUD and no-LLM tool routing', async ({ page })
   await app.getByRole('button', { name: /Summarize/ }).click();
   await expect(app.getByRole('alert')).toContainText(/no-llm|llm_disabled/);
   await expect(app.getByText(notes[0], { exact: true })).toBeVisible();
-  await page.screenshot({ path: 'test-results/harness.png', fullPage: true, mask: [page.locator('#frameUrl')] });
+  await page.screenshot({ path: 'test-results/harness.png', fullPage: true, mask: [page.locator('#iframe-src')] });
   await page.locator('iframe').first().screenshot({ path: 'test-results/no-llm.png' });
   writeFileSync('test-results/harness-rpc.jsonl', calls.map((c) => JSON.stringify(c)).join('\n') + '\n');
   expect(calls.some((c: any) => c.ns === 'storage' && c.method === 'get')).toBe(true);

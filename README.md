@@ -1,6 +1,6 @@
 # Mini Notes with LLM Summary
 
-本地运行的 Anna App。创建、查看、删除笔记通过 Anna storage Host API；总结通过 Executa 二进制的反向 `sampling/createMessage` 获取。无需 Anna 账号、`anna-app login`、LLM API key 或云端数据库。
+本地运行的 Anna App。创建、查看、删除笔记通过 Anna storage Host API；总结通过 Executa 二进制的反向 `sampling/createMessage` 获取。原题的无账号验收无需 Anna 登录、LLM API key 或云端数据库；另提供可选的千问宿主模式供实际总结使用。
 
 ![Mini Notes 界面](docs/evidence/notes.png)
 
@@ -92,6 +92,8 @@ npm run validate
 
 ```sh
 npm run dev
+# 同一官方 harness，加上 Mini Notes 显示名称，仍为 no-LLM / legacy storage。
+# 完全原生 CLI 验收：npm run dev:harness
 # 等价于：npx anna-app dev --no-llm --storage legacy
 ```
 
@@ -121,6 +123,36 @@ npm run dev
 
 - `anna-app-runtime-local@0.2.0a28` 的 ExecutaPool 直接发送 `invoke`，未发送 `initialize`。本地 `executa.json` 使用 `scripts/dev-executa.mjs` 启动 Go 工具：先发送并检查 v2 握手，然后透传其余 JSON-RPC 消息。这个启动器不生成 summary、不拦截 sampling，也不包含在发布 archive 中。独立发布二进制必须由 host 正常初始化，协议测试直接测试该二进制。
 - 本地 reverse sampling 桥使用发起调用的 App session，内部经 `llm.complete` dispatcher 校验。因此 App manifest 为这条桥声明 `permissions: llm.complete` 和 `ui.host_api.llm: [complete]`。**前端没有调用 anna.llm.complete**；浏览器测试明确断言没有 iframe 发出的 llm namespace 请求。
+
+### 可选：接入千问做真实总结
+
+Windows PowerShell：
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+npm run build
+npm run dev:qwen
+```
+
+macOS：
+
+```sh
+cp .env.example .env
+open -e .env
+npm run build
+npm run dev:qwen
+```
+
+在 `.env` 填入 `DASHSCOPE_API_KEY`，以及相同地域的 `QWEN_BASE_URL`、模型名 `QWEN_MODEL`。示例默认北京旧域名和 `qwen-plus`；也支持 `qwen3.8-flash`。可换成百炼控制台提供的业务空间专属域名，具体见 [百炼兼容接口文档](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)。`.env` 已被 Git 忽略；不要把密钥写入 `VITE_` 环境变量。
+
+`scripts/dev.mjs` 复用固定 CLI 0.1.58 的官方 HarnessServer、Python dispatcher、SDK 与工具路由，仅在宿主 `host.llm.complete` 处理器接入千问。链路仍是 iframe → tools.invoke → Go Executa → sampling/createMessage → Anna dispatcher → 千问 → summary；前端和 Go 工具不接触密钥，也不直接访问模型接口。宿主请求超时 45 秒，短于工具的 60 秒等待上限；鉴权、额度、网络和空响应错误会在页面显示。默认的原题无模型验收不受影响。
+
+此开发适配依赖 CLI 的内部模块路径，升级 CLI 时需要同步检查并运行 `npm run test:qwen`。该命令用本地模拟提供商验证真实 Anna UI/工具/sampling 成功链路和 HTTP 401 错误，不使用真实密钥，也不把模拟结果视为真实模型验证。真实千问需另外用本机密钥点击 Summarize 验证。
+
+本机已用 `qwen3.8-flash` 验证真实总结：“明天跟进客户的需求，修复登录页面的验证码问题。”通过完整 sampling 链路返回“明日需跟进客户需求，并修复登录页面的验证码问题。”无前端 llm namespace 调用。该人工实测是辅助证据；自动验收仍使用无凭据的两个原题测试路径。
+
+![真实千问总结与 Mini Notes 显示名称](docs/evidence/qwen-live.png)
 
 ## 6. 独立测试后端 mock sampling
 
@@ -187,6 +219,7 @@ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"describe"}' | ./dist/bin/mini-n
 ```sh
 npm test
 npm run test:harness
+npm run test:qwen
 ```
 
 Playwright 打开真实 dashboard/iframe，执行增删和总结，记录 `/api/session/call` 请求。不是前端 runtime mock。预期 `1 passed`。
@@ -223,18 +256,18 @@ archive root/
 
 `Verify app` 在 main push / pull request 上执行构建、严格校验、行为测试、stdio 测试、独立 mock sampling，以及真实 UI harness。失败时上传诊断产物。
 
-`Release native Executa binaries` 支持推送 `v*` tag 或在 Actions 页面手动 Run workflow。版本来自 package.json；首版为 0.1.0。
+`Release native Executa binaries` 支持推送 `v*` tag 或在 Actions 页面手动 Run workflow。版本来自 package.json；当前版本为 0.1.1。
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 三个原生 runner 分别构建并解压验证，全部成功后 publish job 一次性创建 GitHub Release，上传：
 
-- `mini-notes-summarizer-0.1.0-darwin-arm64.tar.gz`
-- `mini-notes-summarizer-0.1.0-darwin-x86_64.tar.gz`
-- `mini-notes-summarizer-0.1.0-windows-x86_64.zip`
+- `mini-notes-summarizer-0.1.1-darwin-arm64.tar.gz`
+- `mini-notes-summarizer-0.1.1-darwin-x86_64.tar.gz`
+- `mini-notes-summarizer-0.1.1-windows-x86_64.zip`
 - `SHA256SUMS`
 
 workflow artifacts 只用于 build job 到 publish job 的传递；最终交付是 [GitHub Release assets](https://github.com/123fool/anna-mini-notes/releases)。workflow 使用仓库的 GITHUB_TOKEN，不需要 Anna 凭据。已经发布的版本不覆盖；发布下一版时同步 App、Executa 和 package 版本。

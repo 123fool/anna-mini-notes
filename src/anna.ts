@@ -21,7 +21,7 @@ export interface AnnaConnection {
   };
   tools: {
     invoke(args: { tool_id: string; method: string; args: { text: string } }): Promise<{
-      result: { success: boolean; data?: { summary: string }; error?: string };
+      summary: string;
     }>;
   };
 }
