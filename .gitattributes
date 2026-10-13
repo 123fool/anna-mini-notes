@@ -1,0 +1,4 @@
+* text=auto
+*.go text eol=lf
+*.mjs text eol=lf
+*.jsonl text eol=lf

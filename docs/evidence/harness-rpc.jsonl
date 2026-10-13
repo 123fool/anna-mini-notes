@@ -1,0 +1,11 @@
+{"session_id":"sess-1","ns":"window","method":"hello","args":{}}
+{"session_id":"sess-1","ns":"window","method":"ready","args":{}}
+{"session_id":"sess-1","ns":"storage","method":"get","args":{"key":"mini-notes"}}
+{"session_id":"sess-1","ns":"storage","method":"set","args":{"key":"mini-notes","value":{"nextOrder":2,"notes":[{"id":"50a5b1a6-1a11-4a5a-9b1d-987524d19f83","content":"Follow up with the client tomorrow","order":1}]}}}
+{"session_id":"sess-1","ns":"storage","method":"set","args":{"key":"mini-notes","value":{"nextOrder":3,"notes":[{"id":"50a5b1a6-1a11-4a5a-9b1d-987524d19f83","content":"Follow up with the client tomorrow","order":1},{"id":"624b6004-d10d-4c66-850a-dd9b08a41be6","content":"Fix the login bug","order":2}]}}}
+{"session_id":"sess-1","ns":"storage","method":"set","args":{"key":"mini-notes","value":{"nextOrder":4,"notes":[{"id":"50a5b1a6-1a11-4a5a-9b1d-987524d19f83","content":"Follow up with the client tomorrow","order":1},{"id":"624b6004-d10d-4c66-850a-dd9b08a41be6","content":"Fix the login bug","order":2},{"id":"5c55ecfb-da83-4dea-b2e5-83ead24ca8de","content":"Workshop ideas","order":3}]}}}
+{"session_id":"sess-1","ns":"storage","method":"set","args":{"key":"mini-notes","value":{"nextOrder":4,"notes":[{"id":"50a5b1a6-1a11-4a5a-9b1d-987524d19f83","content":"Follow up with the client tomorrow","order":1},{"id":"5c55ecfb-da83-4dea-b2e5-83ead24ca8de","content":"Workshop ideas","order":3}]}}}
+{"session_id":"sess-1","ns":"window","method":"hello","args":{}}
+{"session_id":"sess-1","ns":"window","method":"ready","args":{}}
+{"session_id":"sess-1","ns":"storage","method":"get","args":{"key":"mini-notes"}}
+{"session_id":"sess-1","ns":"tools","method":"invoke","args":{"tool_id":"tool-mini-notes-summarizer-local","method":"summarize","args":{"text":"1. Follow up with the client tomorrow\n3. Workshop ideas"}}}

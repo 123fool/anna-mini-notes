@@ -1,0 +1,10 @@
+{
+  "slug": "mini-notes-summarizer",
+  "name": "tool-mini-notes-summarizer-local",
+  "version": "0.1.0",
+  "executa_type": "tool",
+  "description": "Summarize notes through host LLM sampling.",
+  "tool_id": "tool-mini-notes-summarizer-local",
+  "type": "go",
+  "command": ["node", "../../scripts/dev-executa.mjs"]
+}

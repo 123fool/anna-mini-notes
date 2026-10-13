@@ -1,0 +1,41 @@
+{
+  "name": "anna-mini-notes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "validate": "anna-app validate --strict",
+    "dev": "anna-app dev --no-llm --storage legacy",
+    "build:watch": "vite build --watch",
+    "build:tool": "node scripts/build-tool.mjs",
+    "test": "vitest run",
+    "test:tool": "node scripts/test-tool.mjs",
+    "test:sampling": "node scripts/test-sampling.mjs",
+    "test:harness": "playwright test",
+    "pack": "node scripts/pack.mjs",
+    "test:archive": "node scripts/test-archive.mjs",
+    "check": "npm run build && npm run validate && npm test && npm run test:tool && npm run test:sampling"
+  },
+  "dependencies": {
+    "@anna-ai/app-runtime": "0.20.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@anna-ai/cli": "0.1.58",
+    "@playwright/test": "1.56.0",
+    "@testing-library/react": "16.3.0",
+    "@types/node": "24.7.2",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.0.4",
+    "jsdom": "27.0.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "4.1.11"
+  }
+}

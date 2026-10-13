@@ -1,0 +1,85 @@
+name: Release native Executa binaries
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: darwin-arm64
+          - runner: macos-15-intel
+            platform: darwin-x86_64
+          - runner: windows-2022
+            platform: windows-x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.2'
+          cache: false
+      - name: Check native architecture
+        shell: bash
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+        run: |
+          actual="$(go env GOOS)-$(go env GOARCH)"
+          actual="${actual/amd64/x86_64}"
+          test "$actual" = "$EXPECTED_PLATFORM"
+      - run: npm ci
+      - run: npm run build
+      - run: npm run validate
+      - run: npm run test:tool
+      - run: npm run pack
+      - run: npm run test:archive
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.platform }}
+          path: |
+            dist/*-${{ matrix.platform }}.tar.gz
+            dist/*-${{ matrix.platform }}.zip
+            dist/*-${{ matrix.platform }}.*.sha256
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: release-assets
+          merge-multiple: true
+      - name: Publish all three native archives together
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
+          tag="v$version"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            test "$GITHUB_REF_NAME" = "$tag"
+          fi
+          test -f "release-assets/mini-notes-summarizer-$version-darwin-arm64.tar.gz"
+          test -f "release-assets/mini-notes-summarizer-$version-darwin-x86_64.tar.gz"
+          test -f "release-assets/mini-notes-summarizer-$version-windows-x86_64.zip"
+          (cd release-assets && cat *.sha256 > SHA256SUMS && sha256sum --check SHA256SUMS)
+          gh release create "$tag" release-assets/*.tar.gz release-assets/*.zip release-assets/SHA256SUMS \
+            --target "$GITHUB_SHA" --title "Mini Notes $version" \
+            --notes "Native Anna Executa archives for macOS ARM64, macOS x86_64 and Windows x86_64. Every archive was extracted and its executable passed describe and stdio protocol smoke tests on its native runner. See README for local App and mock-sampling verification."

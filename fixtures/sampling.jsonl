@@ -1,0 +1,1 @@
+{"ns":"sampling","method":"createMessage","match":{"contentIncludes":"Follow up with the client"},"result":{"role":"assistant","content":{"type":"text","text":"[fixture:mini-notes] Follow up with the client tomorrow and fix the login bug."},"model":"fixture-model","stopReason":"endTurn"}}

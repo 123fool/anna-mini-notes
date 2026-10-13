@@ -1,0 +1,7 @@
+{
+  "data": {
+    "summary": "[fixture:mini-notes] Follow up with the client tomorrow and fix the login bug."
+  },
+  "success": true,
+  "tool": "summarize"
+}

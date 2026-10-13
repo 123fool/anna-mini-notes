@@ -1,0 +1,10 @@
+node_modules/
+bundle/
+dist/
+coverage/
+test-results/
+playwright-report/
+.anna/
+.env
+.env.*
+*.log
