@@ -1,8 +1,60 @@
 # Mini Notes with LLM Summary
 
-本地运行的 Anna App。创建、查看、删除笔记通过 Anna storage Host API；总结通过 Executa 二进制的反向 `sampling/createMessage` 获取。原题的无账号验收无需 Anna 登录、LLM API key 或云端数据库；另提供可选的千问宿主模式供实际总结使用。
+Mini Notes 是本地运行的 Anna 笔记应用，用来记录待办、开发问题和临时想法，并将多条笔记总结成简短摘要。前端使用 React + TypeScript + Vite；笔记读写使用 Anna storage Host API；总结由 Go Executa 发起反向 `sampling/createMessage`，交给宿主模型完成。
+
+项目保留原题要求的无账号验收流程，也提供千问宿主模式。本机已验证 `qwen3.8-flash` 的真实总结。无模型验收不需要 Anna 登录、LLM API key 或云端数据库；千问模式需要在本机配置百炼 API Key。
+
+[GitHub 仓库](https://github.com/123fool/anna-mini-notes) · [三平台 Release](https://github.com/123fool/anna-mini-notes/releases/tag/v0.1.1)
+
+## 功能介绍
+
+| 功能 | 使用方式与行为 |
+|---|---|
+| 创建笔记 | 输入文字后点击 **Save note**。自动去除首尾空白，空内容不能保存；写入成功后清空输入框。 |
+| 查看笔记 | 页面展示内容、添加顺序和笔记数量；连接 Anna 后自动读取已保存的笔记。 |
+| 删除笔记 | 点击笔记右侧的 **×**，列表立即更新，并同步写入 Anna storage；写入失败时恢复原列表。 |
+| 总结笔记 | 点击 **Summarize**，按添加顺序提交当前笔记，展示宿主模型返回的摘要；没有笔记时按钮不可用。 |
+| 操作反馈 | 提供加载、空列表、处理中和错误状态；处理中禁用重复操作，笔记成功变更后清除旧摘要。 |
+
+例如，记录“明天跟进客户需求”和“修复登录页面的验证码问题”，总结可以提炼出这两项行动。下方的实际运行截图展示了另一组笔记：午餐计划与所需食材。
+
+**存储范围：** 本地开发使用 Anna 的 legacy 内存存储。在同一宿主 session 中重新加载 App iframe 可以读回笔记；刷新外层 dashboard 或重启宿主后不保证保留。当前功能范围是创建、查看、删除和总结，不包含编辑、搜索、标签或协作。
+
+## 运行截图
+
+### 创建与查看笔记
 
 ![Mini Notes 界面](docs/evidence/notes.png)
+
+笔记显示添加顺序。图中删除了第二条，保留的顺序是 01 和 03，后续新增笔记不会复用旧编号。
+
+### 多条笔记与千问总结
+
+![三条笔记与千问生成的总结](docs/evidence/mini-notes-summary.png)
+
+实际运行时记录了三条午餐相关笔记，点击 **Summarize** 后得到：“计划吃西红柿炒鸡蛋，需准备番茄和鸡蛋。”顶部显示名称为 **Mini Notes**。
+
+第 5 节还提供无模型模式的预期错误截图，以及真实千问调用与 RPC 日志截图，便于对照两种运行方式。
+
+## 快速运行
+
+先按[安装依赖](#1-安装依赖)准备 Node.js、Go 和 uv，在项目根目录运行：
+
+```sh
+npm ci
+npm run build
+npm run validate
+npm run dev
+```
+
+打开 [http://localhost:5180/](http://localhost:5180/)。默认模式可创建、查看和删除笔记；点击总结会得到预期的 no-LLM 错误。真实千问总结请按[千问配置说明](#可选接入千问做真实总结)填写本机 `.env`，然后改用 `npm run dev:qwen`。
+
+| 命令 | 用途 | 模型凭据 |
+|---|---|---|
+| `npm run dev` | 官方 Anna harness，顶部显示 Mini Notes；默认无模型模式 | 无需 |
+| `npm run dev:harness` | 直接执行原生 `anna-app dev --no-llm --storage legacy` | 无需 |
+| `npm run dev:qwen` | 在同一 Anna 工具和 sampling 链路中使用千问 | 本机百炼 API Key |
+| `npm run test:sampling` | 独立验证 Go 工具的 mock sampling 请求和回复 | 无需 |
 
 ## 核心链路
 
@@ -19,6 +71,64 @@ Anna harness dashboard
 ```
 
 UI harness 不通过总结 fixture 伪造成功。生产工具不生成固定总结、不访问自建 HTTP 服务，也不持有模型凭据。
+
+## 实现说明
+
+### 前端与 Anna 连接
+
+`src/App.tsx` 管理页面和操作状态；`src/anna.ts` 负责连接与存储；`src/summary.ts` 负责工具调用。`AnnaAppRuntime.connect()` 的 Promise 被缓存，应用建立连接后读取笔记。Vite 将源码构建为 `bundle/` 中的静态资源，由 Anna harness 在 iframe 内加载。
+
+保存时先等待 storage 写入成功，再更新页面和清空输入框。删除使用乐观更新：先移除列表项，同时写入 storage；失败则恢复原状态并提示错误。总结只使用已经和 storage 同步的笔记。
+
+### 笔记数据与存储
+
+所有笔记存放在 storage key `mini-notes` 下，数据结构如下。这里的 ID 是示例，实际新增时由 `crypto.randomUUID()` 生成：
+
+```json
+{
+  "nextOrder": 4,
+  "notes": [
+    { "id": "note-1", "content": "明天跟进客户需求", "order": 1 },
+    { "id": "note-3", "content": "修复登录页面的验证码问题", "order": 3 }
+  ]
+}
+```
+
+`nextOrder` 持续递增，删除笔记不会重排编号。初次加载调用 `anna.storage.get`；新增和删除调用 `anna.storage.set` 写入完整状态。读取到格式错误的数据时显示错误，避免覆盖原有内容。
+
+### 工具调用与反向 sampling
+
+`src/summary.ts` 按添加顺序将笔记组织为文本，调用 `tool-mini-notes-summarizer-local` 的 `summarize` 方法。Go 工具只构造总结 prompt，结果必须来自宿主 sampling 回复。
+
+```mermaid
+sequenceDiagram
+    participant UI as React App iframe
+    participant Anna as Anna Host / dispatcher
+    participant Tool as Go Executa
+    participant LLM as 宿主模型 / 千问
+    UI->>Anna: tools.invoke(summarize, text)
+    Anna->>Tool: JSON-RPC invoke
+    Tool->>Anna: sampling/createMessage(notes + prompt)
+    Anna->>LLM: 请求文本总结
+    LLM-->>Anna: 模型生成的摘要
+    Anna-->>Tool: sampling response
+    Tool-->>Anna: success + data.summary
+    Anna-->>UI: summary
+```
+
+Executa 通过逐行 JSON-RPC over stdio 实现 `initialize`、`describe`、`invoke`、`health` 和 `shutdown`。v2 握手声明 sampling capability；唯一的 stdin reader 同时接收普通请求与反向 RPC 回复，invoke 异步等待，因此不会阻塞后续请求。反向请求携带关联 invoke ID，等待上限 60 秒；stdout 只输出协议消息并立即 flush，日志写入 stderr。
+
+Go 工具返回 `{ success: true, tool: "summarize", data: { summary } }`。Anna dispatcher 解包后，浏览器 SDK 得到 `{ summary }`，前端校验文本再显示。
+
+### 千问宿主与权限
+
+`scripts/dev.mjs` 复用官方 Anna harness，在宿主 `host.llm.complete` 处理器接入 `scripts/qwen.mjs`。适配器把 sampling 文本转换成百炼兼容接口的 messages，并将模型回复转换回 Anna sampling 格式。
+
+密钥仅在宿主 Node 进程读取；启动 Python/Go 子进程前从环境中移除，不进入前端 bundle。App manifest 使用 schema 3，声明 storage、tools 与 sampling 所需能力，storage ACL 限定 `get/set`，tools ACL 限定本工具。额外的 `llm.complete` ACL 是当前固定 runtime 的 reverse sampling 桥所需，前端只调用 `tools.invoke`。第 5 节说明了这项兼容处理。
+
+### 构建与发布
+
+Go 打包程序识别本机架构，以 `CGO_ENABLED=0` 构建独立二进制。每个归档根目录包含入口 `manifest.json` 和 `bin/`。GitHub Actions 分别在 macOS ARM64、macOS x86_64 和 Windows x86_64 原生 runner 上构建、解压和运行协议测试，三个任务全部通过后统一上传到 GitHub Release。第 9、10 节提供命令和产物说明。
 
 ## 项目结构
 
